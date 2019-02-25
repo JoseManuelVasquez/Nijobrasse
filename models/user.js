@@ -14,16 +14,17 @@ var UserSchema = new mongoose.Schema({
         required: true
     },
     saltHash: {
-        type: String,
-        required: true
+        type: String
+    },
+    permissionType: {
+        type: Number
     },
     profileImg: {
         type: String,
         trim: true
     },
     description: {
-        type: String,
-        trim: true
+        type: String
     },
     postsID: {
         type: [Number]
@@ -56,11 +57,18 @@ UserSchema.pre('save', function (next) {
  */
 UserSchema.methods.comparePassword = function (loginPassword, callback) {
     let self = this;
+    let correct = false;
 
-    if (loginPassword !== self.passwordHash)
-        return callback(true, null);
+    /* Password shouldn't be empty or undefined */
+    if (loginPassword) {
+        /* Override password with the hashed one */
+        loginPassword = sha512(loginPassword, self.saltHash).passwordHash;
 
-    callback(null, true);
+        /* If password does not match, the callback function will return false */
+        correct = loginPassword === self.passwordHash;
+    }
+
+    callback(correct);
 };
 
 /**
@@ -70,6 +78,10 @@ UserSchema.methods.comparePassword = function (loginPassword, callback) {
  * @param {string} salt - Data to be validated.
  */
 function sha512(password, salt){
+    if (!password) {
+        return null;
+    }
+
     let hash = crypto.createHmac('sha512', salt); /** Hashing algorithm sha512 */
     hash.update(password);
     let value = hash.digest('hex');
@@ -81,7 +93,7 @@ function sha512(password, salt){
 }
 
 /**
- * generates random string of characters i.e salt
+ * Generates random string of characters i.e salt
  * @function
  * @param {number} length - Length of the random string.
  */

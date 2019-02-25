@@ -31,6 +31,7 @@ server.on('listening', onListening);
  * Connect to MongoDB
  */
 mongoose.connect(process.env.DB_HOST, { useNewUrlParser: true });
+mongoose.set('useCreateIndex', true);
 mongoose.connection.on('error', onErrorMongoose);
 mongoose.connection.on('connected', onConnectMongoose);
 
