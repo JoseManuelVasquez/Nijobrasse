@@ -195,3 +195,45 @@ exports.setProfileImage = function (req, res) {
         });
     });
 };
+
+/**
+ * PATCH Method for updating user description
+ * @param req
+ * @param res
+ */
+exports.setDescription = function (req, res) {
+    let token = req.body.token || req.query.token || req.headers['x-access-token'];
+    let description = req.body.description;
+
+    if (!token || !description) {
+        res.json({
+            success: false,
+            error: "Parameters shouldn't be empty"
+        });
+        return;
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, function (err, decodedToken) {
+        if (err) {
+            res.json(err);
+            return;
+        }
+
+        User.findOne({_id: decodedToken.id}).then(function (user, err) {
+            if (err) {
+                res.json({
+                    success: false,
+                    error: "Database error"
+                });
+                return;
+            }
+
+            /* Update user description */
+            user.description = description;
+
+            res.json({
+                success: true,
+            });
+        });
+    });
+};
