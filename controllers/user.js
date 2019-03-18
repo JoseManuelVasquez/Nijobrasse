@@ -1,18 +1,16 @@
 var User = require('../models/User');
 var jwt = require('jsonwebtoken');
-
-const PERMISSIONS = {
-    admin: 0,
-    blogReviewer: 1,
-    reader: 2
-};
+var USER_CONSTANTS = require('../constants/user');
+var loginRequired = require('../decorators/user').loginRequired;
+var adminRequired = require('../decorators/user').adminRequired;
 
 /**
  * POST Method for creating a new user
  * @param req
  * @param res
  */
-exports.signUp = function(req, res) {
+exports.signUp = signUp;
+function signUp (req, res) {
     let username = req.body.username;
     let password = req.body.password;
 
@@ -28,7 +26,7 @@ exports.signUp = function(req, res) {
     let newUser = new User({
         username: username,
         passwordHash: password,
-        permissionType: PERMISSIONS.reader /** Every user is a reader by default */
+        permissionType: USER_CONSTANTS.PERMISSIONS.reader /** Every user is a reader by default */
     });
 
     newUser.save(function (err, saved) {
@@ -52,7 +50,8 @@ exports.signUp = function(req, res) {
  * @param req
  * @param res
  */
-exports.login = function(req, res) {
+exports.login = login;
+function login (req, res) {
     let username = req.body.username;
     let password = req.body.password;
 
@@ -98,11 +97,12 @@ exports.login = function(req, res) {
 
             res.json({
                 success: true,
+                userId: user._id,
                 token: token
             });
         });
     });
-};
+}
 
 /**
  * PATCH Method for updating user privilege (Admin method)
@@ -110,6 +110,13 @@ exports.login = function(req, res) {
  * @param res
  */
 exports.setPermissionType = function (req, res) {
+    /* Login and Admin required */
+    if (!loginRequired(req, res)) return;
+    if (!adminRequired(req, res)) return;
+
+    setPermissionType(req, res);
+};
+function setPermissionType (req, res) {
     let token = req.body.token || req.query.token || req.headers['x-access-token'];
     let permission = req.body.permission;
 
@@ -135,14 +142,6 @@ exports.setPermissionType = function (req, res) {
                 });
                 return;
             }
-            
-            if (user.permissionType !== PERMISSIONS.admin) {
-                res.json({
-                    success: false,
-                    error: "You are not granted to modify user permission"
-                });
-                return;
-            }
 
             /* Update user privilege only by the admin */
             user.permissionType = permission;
@@ -152,7 +151,7 @@ exports.setPermissionType = function (req, res) {
             });
         });
     });
-};
+}
 
 /**
  * PATCH Method for updating profile image
@@ -160,6 +159,12 @@ exports.setPermissionType = function (req, res) {
  * @param res
  */
 exports.setProfileImage = function (req, res) {
+    /* Login required */
+    if (!loginRequired(req, res)) return;
+
+    setProfileImage(req, res);
+};
+function setProfileImage (req, res) {
     let token = req.body.token || req.query.token || req.headers['x-access-token'];
     let profileImgURL = req.body.profileImg;
 
@@ -194,7 +199,7 @@ exports.setProfileImage = function (req, res) {
             });
         });
     });
-};
+}
 
 /**
  * PATCH Method for updating user description
@@ -202,6 +207,12 @@ exports.setProfileImage = function (req, res) {
  * @param res
  */
 exports.setDescription = function (req, res) {
+    /* Login required */
+    if (!loginRequired(req, res)) return;
+
+    setDescription(req, res);
+};
+function setDescription (req, res) {
     let token = req.body.token || req.query.token || req.headers['x-access-token'];
     let description = req.body.description;
 
@@ -236,4 +247,4 @@ exports.setDescription = function (req, res) {
             });
         });
     });
-};
+}
